@@ -2,12 +2,11 @@
 
 Cliente Android do [GreenLabs Live Streaming](https://github.com/gustavo-blacknaut/greenlabs-live-streaming).
 
-Permite entrar nas salas pelo celular para **assistir** as transmissões e
-participar com **câmera e microfone**.
+Permite entrar nas salas pelo celular para **assistir** as transmissões,
+transmitir a própria tela e participar com **câmera e microfone**.
 
-> **Estado: compila e assina, mas nunca rodou num aparelho de verdade.** O
-> `assembleRelease` gera um APK assinado normalmente. O que falta é testar em
-> um celular real — veja [O que falta](#o-que-falta).
+> **Estável.** Testado em aparelho real: transmitir tela, câmera, microfone e
+> entrar em sala funcionando.
 
 ---
 
@@ -72,7 +71,7 @@ localmente:
 ┌─────────────────────────────────────────┐
 │  MainActivity (WebView)                 │
 │                                         │
-│   http://127.0.0.1:<porta aleatória>    │
+│   http://127.0.0.1:47869                │
 │                    ▲                    │
 │                    │                    │
 │   AssetHttpServer ─┘                    │
@@ -95,7 +94,9 @@ Foi a única das três opções que atende os dois requisitos ao mesmo tempo:
 | **`http://127.0.0.1`** | ✅ exceção de loopback | ✅ |
 
 O `AssetHttpServer` é um servidor mínimo (~180 linhas, sem dependências) que
-serve os arquivos de `assets/web/` numa porta aleatória do loopback.
+serve os arquivos de `assets/web/`. A porta é fixa de propósito: `localStorage`
+é preso à origem, e a porta faz parte dela — uma porta nova a cada abertura
+significaria perder as configurações salvas toda vez.
 
 ---
 
@@ -174,8 +175,7 @@ eles o app ainda funciona, mas só para assistir.
 
 - [x] Testar o APK em aparelho real — testado; áudio, layout e captura de
       tela renderam problemas reais que foram corrigidos nas versões 1.0.1+
-- [ ] Confirmar compartilhar tela (MediaProjection) num aparelho real —
-      código revisado a fundo, mas sem confirmação de teste ainda
+- [x] Confirmar compartilhar tela num aparelho real
 - [ ] Verificar WebRTC no WebView em versões diferentes do Android
 - [x] Ícone próprio
 

@@ -3,6 +3,15 @@
 Todas as mudanças notáveis do cliente Android, por versão. Formato livre,
 em português, ligado aos [releases do GitHub](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases).
 
+## [1.0.5](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases/tag/v1.0.5) — 2026-08-24
+
+**Primeira versão estável.** Testada em aparelho real: transmitir tela,
+câmera, microfone, entrar em sala e o layout de abas funcionando.
+
+- Cliente web embutido atualizado, com o tráfego de sinalização reduzido em
+  até 23x em salas grandes (o servidor agrupava mal os broadcasts de ping) e o
+  código dividido em módulos.
+
 ## [1.0.4](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases/tag/v1.0.4) — 2026-08-24
 
 - **A barra de abas ficava por baixo dos botões de navegação do Android**,
