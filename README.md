@@ -19,12 +19,47 @@ participar com **câmera e microfone**.
 | Câmera | ✅ |
 | Microfone | ✅ |
 | Entrar em sala / servidor | ✅ |
-| Transmitir a tela | ❌ |
+| Transmitir a tela | ✅ (ver abaixo) |
 | Áudio do sistema sem Discord | ❌ |
 
-As duas últimas dependem de APIs que só existem no Windows
-(`getDisplayMedia` e WASAPI process loopback). A interface esconde esses
-controles automaticamente quando não estão disponíveis.
+A exclusão de áudio depende de WASAPI, que só existe no Windows — isso não
+tem como ser feito no Android por design.
+
+### Como funciona o compartilhamento de tela
+
+Nenhum navegador Android implementa `getDisplayMedia` — não é uma limitação
+do WebView, é da plataforma inteira (confirmado no
+[caniuse](https://caniuse.com/mdn-api_mediadevices_getdisplaymedia)). Então
+esse recurso não vem do WebView: vem de `MediaProjection`, a API nativa que
+o Discord/Zoom/Meet também usam.
+
+```
+MainActivity ──(Intent de permissão)──► sistema
+     │
+     ▼
+ScreenCaptureService (foreground, tipo mediaProjection)
+     │  MediaProjection → VirtualDisplay → ImageReader → JPEG
+     ▼
+ScreenStreamServer (http://127.0.0.1:<porta>/stream)
+     │  frames JPEG enquadrados (4 bytes de tamanho + payload) - mesmo
+     │  formato que o áudio WASAPI do app desktop já usa
+     ▼
+WebView: canvas + captureStream() → MediaStream real → addLocalStream()
+```
+
+O canvas é o que faz a ponte: os frames chegam por HTTP local, são
+desenhados nele, e `canvas.captureStream()` devolve uma `MediaStream` de
+verdade — a partir daí é o mesmo caminho de código que uma câmera usa, o
+resto do WebRTC não precisa saber a diferença.
+
+**A partir do Android 14, o sistema exige uma notificação persistente**
+enquanto a tela está sendo compartilhada (mesma notificação chata que
+Discord/Zoom mostram — não é opcional, é política da plataforma).
+
+Qualidade é mais conservadora que no desktop: a captura fica limitada a
+1280×720 e 15fps mesmo que uma resolução maior esteja selecionada, porque
+cada frame é codificado em JPEG por software — sem isso o consumo de
+CPU/bateria explode rápido num celular.
 
 ---
 
@@ -124,6 +159,8 @@ cp -r dist/. ../greenlabsapp/app/src/main/assets/web/
 | `CAMERA` | transmitir vídeo |
 | `RECORD_AUDIO` | transmitir voz |
 | `MODIFY_AUDIO_SETTINGS` | roteamento de áudio em chamada |
+| `FOREGROUND_SERVICE` / `FOREGROUND_SERVICE_MEDIA_PROJECTION` | exigidas pelo Android para captura de tela em segundo plano |
+| `POST_NOTIFICATIONS` | mostrar a notificação obrigatória durante o compartilhamento de tela (Android 13+) |
 
 `usesCleartextTraffic="true"` é necessário porque o app usa `http://127.0.0.1`
 internamente e `ws://` para servidores na rede local.
