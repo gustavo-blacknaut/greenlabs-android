@@ -3,6 +3,24 @@
 Todas as mudanças notáveis do cliente Android, por versão. Formato livre,
 em português, ligado aos [releases do GitHub](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases).
 
+## [1.0.2](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases/tag/v1.0.2) — 2026-08-24
+
+Corrige quatro problemas reais de um primeiro teste em aparelho:
+
+- **Compartilhar tela "teleportando"** em vez de mover suavemente — os
+  frames JPEG chegavam em rajadas e eram desenhados assim que decodificados;
+  agora o desenho no canvas é espaçado pelo fps alvo.
+- **"Failed to fetch" ao tentar transmitir a tela** — retry com backoff na
+  conexão inicial ao stream nativo.
+- **O topo da tela e o espaço da câmera não respeitavam a barra de
+  status/notch.** O listener de `WindowInsets` era registrado depois de
+  `setContentView()`, perdendo o único despacho automático — o padding só
+  aparecia depois de algum evento novo (rotação, teclado). Corrigido
+  forçando um novo despacho (`requestApplyInsets`) logo após registrar o
+  listener.
+- **Notificação do compartilhamento de tela ganhou botões de ação**:
+  "Parar transmissão" e "Sair da chamada", sem precisar voltar pro app.
+
 ## [1.0.1](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases/tag/v1.0.1) — 2026-08-24
 
 - **`localStorage` não sobrevivia a reiniciar o app.** O servidor local

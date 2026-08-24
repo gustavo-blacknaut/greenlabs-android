@@ -3,6 +3,7 @@ package me.blacknaut.greenlabs;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -47,9 +48,13 @@ public class ScreenCaptureService extends Service {
         void onReady(int port);
         void onError(String message);
         void onStopped();
+        void onLeaveCallRequested();
     }
 
     static volatile Callback callback;
+
+    static final String ACTION_STOP_SHARE = "me.blacknaut.greenlabs.action.STOP_SHARE";
+    static final String ACTION_LEAVE_CALL = "me.blacknaut.greenlabs.action.LEAVE_CALL";
 
     private final IBinder binder = new LocalBinder();
     private MediaProjectionManager projectionManager;
@@ -84,7 +89,28 @@ public class ScreenCaptureService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        String action = intent != null ? intent.getAction() : null;
+        if (ACTION_STOP_SHARE.equals(action)) {
+            Callback cb = callback;
+            stopCapture();
+            if (cb != null) cb.onStopped();
+            stopSelf();
+        } else if (ACTION_LEAVE_CALL.equals(action)) {
+            Callback cb = callback;
+            stopCapture();
+            if (cb != null) cb.onLeaveCallRequested();
+            stopSelf();
+        }
         return START_NOT_STICKY;
+    }
+
+    private PendingIntent actionPendingIntent(String action) {
+        Intent intent = new Intent(this, ScreenCaptureService.class).setAction(action);
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT
+                | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0);
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                ? PendingIntent.getForegroundService(this, action.hashCode(), intent, flags)
+                : PendingIntent.getService(this, action.hashCode(), intent, flags);
     }
 
     private void startForegroundCompat() {
@@ -93,6 +119,8 @@ public class ScreenCaptureService extends Service {
                 .setContentText("Compartilhando a tela")
                 .setSmallIcon(android.R.drawable.ic_menu_share)
                 .setOngoing(true)
+                .addAction(android.R.drawable.ic_media_pause, "Parar transmissão", actionPendingIntent(ACTION_STOP_SHARE))
+                .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Sair da chamada", actionPendingIntent(ACTION_LEAVE_CALL))
                 .build();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);

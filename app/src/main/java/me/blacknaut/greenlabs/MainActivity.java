@@ -83,6 +83,18 @@ public class MainActivity extends AppCompatActivity {
                 public void onStopped() {
                     runOnUiThread(() -> evalJs("window.__glScreenStopped && window.__glScreenStopped()"));
                 }
+
+                @Override
+                public void onLeaveCallRequested() {
+                    runOnUiThread(() -> {
+                        evalJs("window.__glScreenStopped && window.__glScreenStopped()");
+                        evalJs("window.__glLeaveCall && window.__glLeaveCall()");
+                        if (screenServiceBound) {
+                            try { unbindService(screenConnection); } catch (Exception ignored) { }
+                            screenServiceBound = false;
+                        }
+                    });
+                }
             };
             screenService.startCapture(pendingResultCode, pendingResultData, pendingWidth, pendingHeight, pendingFps);
         }
@@ -124,6 +136,11 @@ public class MainActivity extends AppCompatActivity {
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
             return insets;
         });
+        // setContentView() above already attached the view tree, so the platform's
+        // one automatic inset dispatch happened before the listener was registered
+        // to catch it - without this, the WebView would sit unpadded until some
+        // later event (rotation, keyboard) happened to trigger a fresh dispatch.
+        ViewCompat.requestApplyInsets(webView);
 
         WebSettings s = webView.getSettings();
         s.setJavaScriptEnabled(true);
