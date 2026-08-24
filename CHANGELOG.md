@@ -3,6 +3,21 @@
 Todas as mudanças notáveis do cliente Android, por versão. Formato livre,
 em português, ligado aos [releases do GitHub](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases).
 
+## [1.0.3](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases/tag/v1.0.3) — 2026-08-24
+
+- **Transmitir a tela nunca funcionou — achada a causa raiz.** O servidor de
+  frames não mandava o cabeçalho `Access-Control-Allow-Origin`. A página é
+  servida numa porta e o stream em outra, o que para o navegador são origens
+  diferentes: o CORS bloqueava o pedido antes mesmo de chegar no servidor,
+  e no JS isso aparece exatamente como **"Failed to fetch"**. O servidor de
+  áudio do desktop já mandava esse cabeçalho pelo mesmo motivo; faltava aqui.
+- **Layout de celular refeito com abas.** Barra inferior alternando entre
+  **Telas**, **Transmissões** e **Usuários**, cada uma ocupando a tela
+  inteira, em vez de espremer tudo junto (medido: 638px de área útil contra
+  309px antes).
+- Correção da regressão de áudio da versão anterior (margem de descarte do
+  buffer estava abaixo do tamanho das rajadas e jogava fora um terço do som).
+
 ## [1.0.2](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases/tag/v1.0.2) — 2026-08-24
 
 Corrige quatro problemas reais de um primeiro teste em aparelho:
