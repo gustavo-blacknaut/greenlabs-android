@@ -8,8 +8,8 @@ class WasapiAudioProcessor extends AudioWorkletProcessor {
     super();
     const { channels, sampleRate } = options.processorOptions;
     this.channels = channels;
-    this.capacity = Math.ceil(sampleRate * 0.2); // 200ms hard ceiling per channel
-    this.maxFill = Math.floor(sampleRate * 0.1); // trim target if network gets ahead: ~100ms
+    this.capacity = Math.ceil(sampleRate * 0.12); // 120ms hard ceiling per channel
+    this.maxFill = Math.floor(sampleRate * 0.04); // trim target if network gets ahead: ~40ms
     this.buffers = Array.from({ length: channels }, () => new Float32Array(this.capacity));
     this.writeIdx = new Array(channels).fill(0);
     this.readIdx = new Array(channels).fill(0);
