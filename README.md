@@ -5,8 +5,9 @@ Cliente Android do [GreenLabs Live Streaming](https://github.com/gustavo-blackna
 Permite entrar nas salas pelo celular para **assistir** as transmissões e
 participar com **câmera e microfone**.
 
-> **Estado: não compilado ainda.** O código está escrito, mas o APK nunca foi
-> gerado nem testado em aparelho. Veja [O que falta](#o-que-falta).
+> **Estado: compila e assina, mas nunca rodou num aparelho de verdade.** O
+> `assembleRelease` gera um APK assinado normalmente. O que falta é testar em
+> um celular real — veja [O que falta](#o-que-falta).
 
 ---
 
@@ -71,11 +72,33 @@ serve os arquivos de `assets/web/` numa porta aleatória do loopback.
 
 O APK sai em `app/build/outputs/apk/debug/`.
 
-Para release (precisa configurar assinatura):
+Para release, assinado e minificado:
 
 ```bash
 ./gradlew assembleRelease
 ```
+
+Isso exige uma keystore em `keystore/greenlabs-release.jks` referenciada por
+`keystore/keystore.properties` (nenhum dos dois vai pro git — sem eles o
+`signingConfig` é pulado e o build falha na assinatura). Para gerar a sua:
+
+```bash
+keytool -genkeypair -v -keystore keystore/greenlabs-release.jks \
+  -alias greenlabs -keyalg RSA -keysize 2048 -validity 10950
+```
+
+E crie `keystore/keystore.properties`:
+
+```properties
+storeFile=greenlabs-release.jks
+storePassword=SUA_SENHA
+keyAlias=greenlabs
+keyPassword=SUA_SENHA
+```
+
+> Guarde essa keystore em lugar seguro. Perdê-la significa não conseguir mais
+> publicar atualizações assinadas com a mesma chave — quem já instalou o app
+> não consegue atualizar por cima, só desinstalar e reinstalar.
 
 ### Atualizando o cliente web
 
@@ -112,11 +135,10 @@ eles o app ainda funciona, mas só para assistir.
 
 ## O que falta
 
-- [ ] Gerar e testar o APK em aparelho real
+- [ ] Testar o APK em aparelho real (só rodou o build, nunca a instalação)
 - [ ] Verificar WebRTC no WebView em versões diferentes do Android
 - [ ] Ajustar a interface para telas pequenas em uso real
 - [ ] Ícone próprio (hoje usa o padrão do template)
-- [ ] Assinatura de release
 
 ---
 
