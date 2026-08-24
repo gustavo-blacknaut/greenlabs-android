@@ -8,6 +8,8 @@ transmitir a própria tela e participar com **câmera e microfone**.
 > **Estável.** Testado em aparelho real: transmitir tela, câmera, microfone e
 > entrar em sala funcionando.
 
+<img src="docs/screenshot.png" width="300" alt="GreenLabs rodando no Android" />
+
 ---
 
 ## O que funciona (por design)
