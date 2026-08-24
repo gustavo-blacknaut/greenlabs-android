@@ -3,6 +3,21 @@
 Todas as mudanças notáveis do cliente Android, por versão. Formato livre,
 em português, ligado aos [releases do GitHub](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases).
 
+## [1.0.4](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases/tag/v1.0.4) — 2026-08-24
+
+- **A barra de abas ficava por baixo dos botões de navegação do Android**,
+  então os toques não pegavam direito. A abordagem anterior — aplicar padding
+  na WebView — não resolve: o padding da view não encolhe de forma confiável
+  o que a página enxerga como `100dvh`, então o layout continuava indo até a
+  borda. Agora o `MainActivity` publica os tamanhos das barras do sistema
+  como variáveis CSS (`--android-inset-*`), reenviadas a cada carregamento
+  de página, e o layout se posiciona a partir delas. Medido no navegador
+  simulando uma barra de 48dp: antes invadia **34px**, agora zero.
+- **Controles no alcance do polegar.** Transmitir tela, câmera, configuração
+  e entrar/sair agora ficam numa barra logo acima das abas, em vez de no
+  topo da tela.
+- Alvos de toque maiores nas abas (56px) e nos controles (~53px).
+
 ## [1.0.3](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases/tag/v1.0.3) — 2026-08-24
 
 - **Transmitir a tela nunca funcionou — achada a causa raiz.** O servidor de
