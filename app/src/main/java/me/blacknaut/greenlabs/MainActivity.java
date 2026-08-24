@@ -20,6 +20,7 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
@@ -29,7 +30,11 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -42,6 +47,9 @@ public class MainActivity extends AppCompatActivity {
 
     private AssetHttpServer server;
     private WebView webView;
+    private FrameLayout rootContainer;
+    private View customView;
+    private WebChromeClient.CustomViewCallback customViewCallback;
 
     private MediaProjectionManager projectionManager;
     private ScreenCaptureService screenService;
@@ -90,14 +98,32 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
+        // Apps targeting SDK 35+ get edge-to-edge forced by the platform regardless
+        // of setDecorFitsSystemWindows(true) - that call is simply a no-op now. So
+        // instead of fighting it, this embraces it: content draws under the system
+        // bars, and the WebView gets padded by their real size via the insets
+        // listener below, so it starts below the status bar exactly like it would
+        // have with the old (now-ignored) non-edge-to-edge behaviour.
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         projectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
 
         webView = new WebView(this);
         webView.setBackgroundColor(0xFF05070A);
-        setContentView(webView);
+
+        rootContainer = new FrameLayout(this);
+        rootContainer.setBackgroundColor(0xFF05070A);
+        rootContainer.addView(webView, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        setContentView(rootContainer);
+
+        ViewCompat.setOnApplyWindowInsetsListener(webView, (view, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars()
+                    | WindowInsetsCompat.Type.displayCutout());
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            return insets;
+        });
 
         WebSettings s = webView.getSettings();
         s.setJavaScriptEnabled(true);
@@ -133,12 +159,43 @@ public class MainActivity extends AppCompatActivity {
                     request.grant(allowed.toArray(new String[0]));
                 }
             }
+
+            // The page's fullscreen button calls Element.requestFullscreen() on a
+            // stage element, not just <video> - WebView only honours that for any
+            // element (not only video) once the host app implements these two
+            // callbacks itself; without them the call silently does nothing.
+            @Override
+            public void onShowCustomView(View view, CustomViewCallback callback) {
+                if (customView != null) {
+                    callback.onCustomViewHidden();
+                    return;
+                }
+                customView = view;
+                customViewCallback = callback;
+                webView.setVisibility(View.GONE);
+                rootContainer.addView(customView, new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+                hideSystemBars();
+            }
+
+            @Override
+            public void onHideCustomView() {
+                if (customView == null) return;
+                rootContainer.removeView(customView);
+                customView = null;
+                webView.setVisibility(View.VISIBLE);
+                if (customViewCallback != null) customViewCallback.onCustomViewHidden();
+                customViewCallback = null;
+                showSystemBars();
+            }
         });
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                if (webView.canGoBack()) {
+                if (customView != null) {
+                    webView.getWebChromeClient().onHideCustomView();
+                } else if (webView.canGoBack()) {
                     webView.goBack();
                 } else {
                     finish();
@@ -193,6 +250,17 @@ public class MainActivity extends AppCompatActivity {
         }
         ScreenCaptureService.callback = null;
         stopService(new Intent(this, ScreenCaptureService.class));
+    }
+
+    private void hideSystemBars() {
+        WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), rootContainer);
+        controller.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+        controller.hide(WindowInsetsCompat.Type.systemBars());
+    }
+
+    private void showSystemBars() {
+        WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), rootContainer);
+        controller.show(WindowInsetsCompat.Type.systemBars());
     }
 
     private void evalJs(String script) {
