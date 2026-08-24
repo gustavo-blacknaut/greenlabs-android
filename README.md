@@ -172,10 +172,12 @@ eles o app ainda funciona, mas só para assistir.
 
 ## O que falta
 
-- [ ] Testar o APK em aparelho real (só rodou o build, nunca a instalação)
+- [x] Testar o APK em aparelho real — testado; áudio, layout e captura de
+      tela renderam problemas reais que foram corrigidos nas versões 1.0.1+
+- [ ] Confirmar compartilhar tela (MediaProjection) num aparelho real —
+      código revisado a fundo, mas sem confirmação de teste ainda
 - [ ] Verificar WebRTC no WebView em versões diferentes do Android
-- [ ] Ajustar a interface para telas pequenas em uso real
-- [ ] Ícone próprio (hoje usa o padrão do template)
+- [x] Ícone próprio
 
 ---
 
@@ -185,6 +187,10 @@ eles o app ainda funciona, mas só para assistir.
 - WebView atualizado (vem pela Play Store na maioria dos aparelhos)
 
 ---
+
+## Changelog
+
+O que mudou em cada versão está no [CHANGELOG.md](CHANGELOG.md).
 
 ## Créditos
 
