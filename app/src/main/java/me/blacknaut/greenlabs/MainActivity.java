@@ -48,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
     private AssetHttpServer server;
     private WebView webView;
     private FrameLayout rootContainer;
+    private Insets lastInsets;
     private View customView;
     private WebChromeClient.CustomViewCallback customViewCallback;
 
@@ -130,16 +131,18 @@ public class MainActivity extends AppCompatActivity {
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
         setContentView(rootContainer);
 
+        // Handing the insets to CSS instead of padding the WebView: padding on
+        // the view doesn't reliably shrink what the page sees as 100dvh, so the
+        // layout kept running under the system bars even with the padding set.
+        // As CSS variables the page can place them exactly where they belong -
+        // and the bottom one is what keeps the tab bar off the Android nav bar.
         ViewCompat.setOnApplyWindowInsetsListener(webView, (view, insets) -> {
             Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars()
                     | WindowInsetsCompat.Type.displayCutout());
-            view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            lastInsets = bars;
+            pushInsetsToPage(bars);
             return insets;
         });
-        // setContentView() above already attached the view tree, so the platform's
-        // one automatic inset dispatch happened before the listener was registered
-        // to catch it - without this, the WebView would sit unpadded until some
-        // later event (rotation, keyboard) happened to trigger a fresh dispatch.
         ViewCompat.requestApplyInsets(webView);
 
         WebSettings s = webView.getSettings();
@@ -158,7 +161,14 @@ public class MainActivity extends AppCompatActivity {
 
         webView.addJavascriptInterface(new ScreenBridge(), "greenlabsMobile");
 
-        webView.setWebViewClient(new WebViewClient());
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                // A load wipes the document, and with it the CSS variables - the
+                // insets have to be pushed again or the page comes back edge-to-edge.
+                if (lastInsets != null) pushInsetsToPage(lastInsets);
+            }
+        });
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onPermissionRequest(PermissionRequest request) {
@@ -278,6 +288,22 @@ public class MainActivity extends AppCompatActivity {
     private void showSystemBars() {
         WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), rootContainer);
         controller.show(WindowInsetsCompat.Type.systemBars());
+    }
+
+    /** Publishes the system bar sizes to the page as CSS variables, in CSS px. */
+    private void pushInsetsToPage(Insets bars) {
+        float density = getResources().getDisplayMetrics().density;
+        if (density <= 0) density = 1f;
+        int top = Math.round(bars.top / density);
+        int bottom = Math.round(bars.bottom / density);
+        int left = Math.round(bars.left / density);
+        int right = Math.round(bars.right / density);
+        String js = "(function(){var s=document.documentElement.style;"
+                + "s.setProperty('--android-inset-top','" + top + "px');"
+                + "s.setProperty('--android-inset-bottom','" + bottom + "px');"
+                + "s.setProperty('--android-inset-left','" + left + "px');"
+                + "s.setProperty('--android-inset-right','" + right + "px');})()";
+        evalJs(js);
     }
 
     private void evalJs(String script) {
