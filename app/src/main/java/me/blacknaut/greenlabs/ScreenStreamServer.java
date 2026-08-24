@@ -71,8 +71,14 @@ final class ScreenStreamServer {
                 // discard
             }
             OutputStream out = client.getOutputStream();
+            // The page is served from 127.0.0.1:<asset port> and this stream lives
+            // on a different port - a different origin as far as the browser is
+            // concerned. Without these headers the fetch is blocked before it ever
+            // reaches us, surfacing in JS as a bare "Failed to fetch". The desktop
+            // WASAPI endpoint already sets the same thing for the same reason.
             out.write(("HTTP/1.1 200 OK\r\n"
                     + "Content-Type: application/octet-stream\r\n"
+                    + "Access-Control-Allow-Origin: *\r\n"
                     + "Cache-Control: no-store\r\n"
                     + "Connection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
             out.flush();
