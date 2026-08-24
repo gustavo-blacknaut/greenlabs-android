@@ -8,3 +8,7 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
+
+# Chave de assinatura de release: nunca vai pro git. Perder isso significa
+# não conseguir mais publicar atualizações assinadas com a mesma chave.
+keystore/
