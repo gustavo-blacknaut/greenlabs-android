@@ -27,6 +27,11 @@ final class AssetHttpServer {
 
     private static final String TAG = "GreenLabsHttp";
     private static final String ROOT = "web";
+    // localStorage is scoped per-origin, which includes the port - a random
+    // port every launch means a fresh, empty storage bucket every time. Using
+    // a fixed port keeps the origin (and everything saved under it, like the
+    // onboarding name/server/room) stable across restarts.
+    private static final int PREFERRED_PORT = 47869;
 
     private final AssetManager assets;
     private final ExecutorService workers = Executors.newFixedThreadPool(4);
@@ -38,9 +43,14 @@ final class AssetHttpServer {
         this.assets = assets;
     }
 
-    /** Binds to a free loopback port and returns the base URL. */
+    /** Binds to a stable loopback port (falling back to a free one if taken) and returns the base URL. */
     String start() throws IOException {
-        socket = new ServerSocket(0, 8, InetAddress.getByName("127.0.0.1"));
+        try {
+            socket = new ServerSocket(PREFERRED_PORT, 8, InetAddress.getByName("127.0.0.1"));
+        } catch (IOException e) {
+            Log.w(TAG, "preferred port busy, falling back to a random one: " + e.getMessage());
+            socket = new ServerSocket(0, 8, InetAddress.getByName("127.0.0.1"));
+        }
         running = true;
         acceptThread = new Thread(this::acceptLoop, "asset-http-accept");
         acceptThread.setDaemon(true);
