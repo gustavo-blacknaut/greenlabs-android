@@ -196,5 +196,4 @@ O que mudou em cada versão está no [CHANGELOG.md](CHANGELOG.md).
 
 ## Créditos
 
-
 Faz parte do projeto [GreenLabs Live Streaming](https://github.com/gustavo-blacknaut/greenlabs-live-streaming).
