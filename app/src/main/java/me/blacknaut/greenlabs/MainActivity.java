@@ -57,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean screenServiceBound;
     private int pendingWidth = 1280;
     private int pendingHeight = 720;
-    private int pendingFps = 15;
+    private int pendingFps = 30;
     private int pendingResultCode;
     private Intent pendingResultData;
 
@@ -330,7 +330,10 @@ public class MainActivity extends AppCompatActivity {
         public void requestScreenCapture(int width, int height, int fps) {
             pendingWidth = Math.max(320, Math.min(width, 1280));
             pendingHeight = Math.max(240, Math.min(height, 1280));
-            pendingFps = Math.max(5, Math.min(fps, 20));
+            // Teto de 30: acompanha o limite do lado web. Cada frame vira um
+            // JPEG por software, entao 30fps custa o dobro de CPU e bateria de
+            // 15 - por isso e experimental.
+            pendingFps = Math.max(5, Math.min(fps, 30));
             runOnUiThread(() -> {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                         && ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.POST_NOTIFICATIONS)
