@@ -65,7 +65,7 @@ public class ScreenCaptureService extends Service {
     private HandlerThread captureThread;
     private Handler captureHandler;
     private volatile long lastFrameAt;
-    private volatile long minFrameIntervalMs = 66;
+    private volatile long minFrameIntervalMs = 33;
 
     class LocalBinder extends Binder {
         ScreenCaptureService getService() {
@@ -156,7 +156,9 @@ public class ScreenCaptureService extends Service {
                 }
             }, null);
 
-            minFrameIntervalMs = Math.max(1000L / Math.max(1, fps), 33);
+            // O piso era 33ms (30fps). Com 30fps pedido, o piso precisa deixar
+            // passar exatamente isso, senao o limite anula o que foi escolhido.
+            minFrameIntervalMs = Math.max(1000L / Math.max(1, fps), 16);
 
             captureThread = new HandlerThread("screen-capture");
             captureThread.start();

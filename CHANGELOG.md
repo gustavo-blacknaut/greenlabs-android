@@ -3,6 +3,17 @@
 Todas as mudanças notáveis do cliente Android, por versão. Formato livre,
 em português, ligado aos [releases do GitHub](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases).
 
+## [1.0.6](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases/tag/v1.0.6) — 2026-08-25
+
+- **720p a 30fps, experimental.** O limite era 15fps. Três tetos precisavam
+  subir juntos, senão o mais baixo anulava os outros: o do lado web, o do
+  bridge nativo (que cortava em 20fps) e o piso de intervalo entre frames do
+  serviço de captura.
+
+  É experimental porque cada frame vira um JPEG por software: 30fps custa o
+  dobro de CPU e bateria de 15. Em aparelho mais fraco pode engasgar — nesse
+  caso é só escolher uma qualidade menor, que o fps acompanha.
+
 ## [1.0.5](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases/tag/v1.0.5) — 2026-08-24
 
 **Primeira versão estável.** Testada em aparelho real: transmitir tela,
