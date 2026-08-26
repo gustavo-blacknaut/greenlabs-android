@@ -1,0 +1,84 @@
+name: Release
+
+# Publica o APK assinado ao criar uma tag v*.
+#
+# A chave de assinatura não está no repositório, e não deve estar: quem tem o
+# arquivo consegue publicar atualizações se passando pelo aplicativo. Ela entra
+# aqui por Secrets, que o GitHub guarda cifrado e nunca mostra de volta - nem
+# no log, que tem os valores mascarados.
+#
+# Sem os secrets configurados o APK sai sem assinatura de release. Ele instala
+# em aparelho com "fontes desconhecidas", mas NÃO atualiza por cima de quem já
+# tem o aplicativo: o Android recusa troca de assinatura. Por isso o passo de
+# conferência abaixo falha de propósito nesse caso, em vez de publicar um
+# arquivo que só decepciona na hora de instalar.
+#
+# Para ligar, em Settings -> Secrets and variables -> Actions:
+#
+#   KEYSTORE_BASE64   base64 -w0 keystore/greenlabs-release.jks
+#   KEYSTORE_PASSWORD senha do arquivo
+#   KEY_ALIAS         alias da chave
+#   KEY_PASSWORD      senha da chave
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Recriar a chave de assinatura
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Sem KEYSTORE_BASE64. Veja o cabecalho deste arquivo."
+            exit 1
+          fi
+          mkdir -p keystore
+          echo "$KEYSTORE_BASE64" | base64 -d > keystore/greenlabs-release.jks
+          cat > keystore/keystore.properties <<PROPS
+          storeFile=greenlabs-release.jks
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          PROPS
+
+      - name: Compilar
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Conferir a assinatura
+        run: |
+          APK=$(ls app/build/outputs/apk/release/*.apk | head -1)
+          SDK=$ANDROID_HOME/build-tools
+          APKSIGNER=$(ls -d $SDK/*/apksigner | sort -V | tail -1)
+
+          # "Verified using v2 scheme" é o que garante que o aparelho vai
+          # aceitar como atualização do que já está instalado.
+          "$APKSIGNER" verify --print-certs "$APK"
+
+          VERSAO=${GITHUB_REF_NAME#v}
+          cp "$APK" "GreenLabs-${VERSAO}.apk"
+          echo "APK=GreenLabs-${VERSAO}.apk" >> "$GITHUB_ENV"
+
+      - name: Publicar
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.APK }}
+          generate_release_notes: true
+
+      - name: Apagar a chave
+        if: always()
+        run: rm -rf keystore
