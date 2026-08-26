@@ -1,6 +1,6 @@
 # GreenLabs Mobile
 
-Cliente Android do [GreenLabs Live Streaming](https://github.com/gustavo-blacknaut/greenlabs-live-streaming).
+Cliente Android do [GreenLabs Live Streaming](https://github.com/gustavo-blacknaut/greenlabs-desktop).
 
 Permite entrar nas salas pelo celular para **assistir** as transmissões,
 transmitir a própria tela e participar com **câmera e microfone**.
@@ -144,7 +144,7 @@ Os arquivos em `app/src/main/assets/web/` são o build do repositório principal
 Para atualizar:
 
 ```bash
-# no repositório greenlabs-live-streaming
+# no repositório greenlabs-desktop
 npm run build
 
 # copie dist/ para cá
@@ -196,4 +196,4 @@ O que mudou em cada versão está no [CHANGELOG.md](CHANGELOG.md).
 
 ## Créditos
 
-Faz parte do projeto [GreenLabs Live Streaming](https://github.com/gustavo-blacknaut/greenlabs-live-streaming).
+Faz parte do projeto [GreenLabs Live Streaming](https://github.com/gustavo-blacknaut/greenlabs-desktop).

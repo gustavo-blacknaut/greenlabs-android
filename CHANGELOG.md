@@ -1,9 +1,9 @@
 # Changelog
 
 Todas as mudanças notáveis do cliente Android, por versão. Formato livre,
-em português, ligado aos [releases do GitHub](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases).
+em português, ligado aos [releases do GitHub](https://github.com/gustavo-blacknaut/greenlabs-android/releases).
 
-## [1.0.6](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases/tag/v1.0.6) — 2026-08-25
+## [1.0.6](https://github.com/gustavo-blacknaut/greenlabs-android/releases/tag/v1.0.6) — 2026-08-25
 
 - **720p a 30fps, experimental.** O limite era 15fps. Três tetos precisavam
   subir juntos, senão o mais baixo anulava os outros: o do lado web, o do
@@ -14,7 +14,7 @@ em português, ligado aos [releases do GitHub](https://github.com/gustavo-blackn
   dobro de CPU e bateria de 15. Em aparelho mais fraco pode engasgar — nesse
   caso é só escolher uma qualidade menor, que o fps acompanha.
 
-## [1.0.5](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases/tag/v1.0.5) — 2026-08-24
+## [1.0.5](https://github.com/gustavo-blacknaut/greenlabs-android/releases/tag/v1.0.5) — 2026-08-24
 
 **Primeira versão estável.** Testada em aparelho real: transmitir tela,
 câmera, microfone, entrar em sala e o layout de abas funcionando.
@@ -23,7 +23,7 @@ câmera, microfone, entrar em sala e o layout de abas funcionando.
   até 23x em salas grandes (o servidor agrupava mal os broadcasts de ping) e o
   código dividido em módulos.
 
-## [1.0.4](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases/tag/v1.0.4) — 2026-08-24
+## [1.0.4](https://github.com/gustavo-blacknaut/greenlabs-android/releases/tag/v1.0.4) — 2026-08-24
 
 - **A barra de abas ficava por baixo dos botões de navegação do Android**,
   então os toques não pegavam direito. A abordagem anterior — aplicar padding
@@ -38,7 +38,7 @@ câmera, microfone, entrar em sala e o layout de abas funcionando.
   topo da tela.
 - Alvos de toque maiores nas abas (56px) e nos controles (~53px).
 
-## [1.0.3](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases/tag/v1.0.3) — 2026-08-24
+## [1.0.3](https://github.com/gustavo-blacknaut/greenlabs-android/releases/tag/v1.0.3) — 2026-08-24
 
 - **Transmitir a tela nunca funcionou — achada a causa raiz.** O servidor de
   frames não mandava o cabeçalho `Access-Control-Allow-Origin`. A página é
@@ -53,7 +53,7 @@ câmera, microfone, entrar em sala e o layout de abas funcionando.
 - Correção da regressão de áudio da versão anterior (margem de descarte do
   buffer estava abaixo do tamanho das rajadas e jogava fora um terço do som).
 
-## [1.0.2](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases/tag/v1.0.2) — 2026-08-24
+## [1.0.2](https://github.com/gustavo-blacknaut/greenlabs-android/releases/tag/v1.0.2) — 2026-08-24
 
 Corrige quatro problemas reais de um primeiro teste em aparelho:
 
@@ -71,7 +71,7 @@ Corrige quatro problemas reais de um primeiro teste em aparelho:
 - **Notificação do compartilhamento de tela ganhou botões de ação**:
   "Parar transmissão" e "Sair da chamada", sem precisar voltar pro app.
 
-## [1.0.1](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases/tag/v1.0.1) — 2026-08-24
+## [1.0.1](https://github.com/gustavo-blacknaut/greenlabs-android/releases/tag/v1.0.1) — 2026-08-24
 
 - **`localStorage` não sobrevivia a reiniciar o app.** O servidor local
   abria numa porta aleatória a cada vez, e `localStorage` é preso à
@@ -83,7 +83,7 @@ Corrige quatro problemas reais de um primeiro teste em aparelho:
   tela não chegava no remoto) e `setShareError` (nunca tinha sido
   declarado — todo erro de câmera/tela sumia sem avisar).
 
-## [1.0.0](https://github.com/gustavo-blacknaut/greenlabs-live-streaming-mobile/releases/tag/v1.0.0) — 2026-08-24
+## [1.0.0](https://github.com/gustavo-blacknaut/greenlabs-android/releases/tag/v1.0.0) — 2026-08-24
 
 Primeira versão publicada. Cliente WebView carregando o mesmo React do
 desktop, servido por HTTP local (loopback: `file://` mata `getUserMedia`,
