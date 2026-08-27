@@ -12,3 +12,5 @@ captures/
 # Chave de assinatura de release: nunca vai pro git. Perder isso significa
 # não conseguir mais publicar atualizações assinadas com a mesma chave.
 keystore/
+
+# Configuracao local de ferramenta; nao vai para o repositorio.

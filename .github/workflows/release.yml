@@ -20,9 +20,11 @@ name: Release
 #   KEY_ALIAS         alias da chave
 #   KEY_PASSWORD      senha da chave
 
+# Só na mão, de propósito. A chave de assinatura fica na máquina de quem
+# desenvolve, e enquanto ela não estiver nos Secrets este workflow não tem como
+# assinar nada. Disparar em toda tag só produzia uma falha vermelha a cada
+# versão, sem nada de útil - o APK sai compilado localmente do mesmo jeito.
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
 
 permissions:
