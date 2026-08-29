@@ -51,6 +51,7 @@ android {
         targetCompatibility JavaVersion.VERSION_11
     }
 
+
     packagingOptions {
         resources {
             excludes += ['META-INF/*.md', 'META-INF/LICENSE*', 'META-INF/NOTICE*']
