@@ -13,4 +13,3 @@ captures/
 # não conseguir mais publicar atualizações assinadas com a mesma chave.
 keystore/
 
-# Configuracao local de ferramenta; nao vai para o repositorio.
