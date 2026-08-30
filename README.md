@@ -1,38 +1,53 @@
-# GreenLabs Mobile
+<div align="center">
 
-Cliente Android do [GreenLabs Live Streaming](https://github.com/gustavo-blacknaut/greenlabs-desktop).
+<img src="app/src/main/assets/web/logo.png" width="96" alt="GreenLabs">
 
-Permite entrar nas salas pelo celular para **assistir** as transmissões,
-transmitir a própria tela e participar com **câmera e microfone**.
+# GreenLabs para Android
 
-> **Estável.** Testado em aparelho real: transmitir tela, câmera, microfone e
-> entrar em sala funcionando.
+**Entre na chamada pelo celular. Assista, apareça, mostre sua tela.**
+
+Sem conta e sem limite de tempo.
+
+[![Baixar](https://img.shields.io/badge/Baixar-APK-16A34A?style=for-the-badge)](https://github.com/gustavo-blacknaut/greenlabs-android/releases/latest)
+&nbsp;
+![Android 7+](https://img.shields.io/badge/Android-7.0%2B-3DDC84?style=flat-square)
+![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=flat-square)
+![WebRTC](https://img.shields.io/badge/WebRTC-P2P-6B7280?style=flat-square)
 
 <img src="docs/greenlabs-android.png" width="300" alt="GreenLabs rodando no Android" />
 
+</div>
+
 ---
 
-## O que funciona (por design)
+## O que dá para fazer
 
-| Recurso | Android |
-|---|---|
-| Assistir transmissões | ✅ |
-| Câmera | ✅ |
-| Microfone | ✅ |
-| Entrar em sala / servidor | ✅ |
-| Transmitir a tela | ✅ (ver abaixo) |
-| Áudio do sistema sem Discord | ❌ |
+| | |
+| --- | :---: |
+| Assistir quem está transmitindo | ✅ |
+| Aparecer na câmera | ✅ |
+| Falar pelo microfone | ✅ |
+| Mostrar a tela do celular | ✅ |
+| Mandar o som do sistema sem o Discord | ❌ |
 
-A exclusão de áudio depende de WASAPI, que só existe no Windows — isso não
-tem como ser feito no Android por design.
+A última linha depende do WASAPI, que só existe no Windows. Para isso existe o
+[aplicativo de Windows](https://github.com/gustavo-blacknaut/greenlabs-windows).
 
-### Como funciona o compartilhamento de tela
+## Como usar
 
-Nenhum navegador Android implementa `getDisplayMedia` — não é uma limitação
-do WebView, é da plataforma inteira (confirmado no
-[caniuse](https://caniuse.com/mdn-api_mediadevices_getdisplaymedia)). Então
+1. Baixe o APK na [página de versões](https://github.com/gustavo-blacknaut/greenlabs-android/releases/latest).
+2. Instale (o Android vai pedir para permitir a instalação dessa origem).
+3. Escreva seu apelido, o endereço do servidor e o nome da sala.
+
+---
+
+## Mostrar a tela do celular
+
+Nenhum navegador Android implementa `getDisplayMedia` — não é limitação do
+WebView, é da plataforma inteira
+([caniuse](https://caniuse.com/mdn-api_mediadevices_getdisplaymedia)). Então
 esse recurso não vem do WebView: vem de `MediaProjection`, a API nativa que
-o Discord/Zoom/Meet também usam.
+Discord, Zoom e Meet também usam.
 
 ```
 MainActivity ──(Intent de permissão)──► sistema
@@ -42,32 +57,31 @@ ScreenCaptureService (foreground, tipo mediaProjection)
      │  MediaProjection → VirtualDisplay → ImageReader → JPEG
      ▼
 ScreenStreamServer (http://127.0.0.1:<porta>/stream)
-     │  frames JPEG enquadrados (4 bytes de tamanho + payload) - mesmo
-     │  formato que o áudio WASAPI do app desktop já usa
+     │  quadros JPEG enquadrados (4 bytes de tamanho + conteúdo) — o mesmo
+     │  formato que o áudio WASAPI do aplicativo de Windows já usa
      ▼
 WebView: canvas + captureStream() → MediaStream real → addLocalStream()
 ```
 
-O canvas é o que faz a ponte: os frames chegam por HTTP local, são
-desenhados nele, e `canvas.captureStream()` devolve uma `MediaStream` de
-verdade — a partir daí é o mesmo caminho de código que uma câmera usa, o
-resto do WebRTC não precisa saber a diferença.
+O canvas é o que faz a ponte: os quadros chegam por HTTP local, são desenhados
+nele, e `canvas.captureStream()` devolve uma `MediaStream` de verdade — daí em
+diante é o mesmo caminho de código que uma câmera usa, e o resto do WebRTC não
+precisa saber a diferença.
 
-**A partir do Android 14, o sistema exige uma notificação persistente**
-enquanto a tela está sendo compartilhada (mesma notificação chata que
-Discord/Zoom mostram — não é opcional, é política da plataforma).
+A captura respeita a qualidade escolhida, com piso de 16 ms entre quadros
+(60 por segundo). Vale saber que cada quadro é comprimido em JPEG por software:
+resolução e taxa altas custam bateria de verdade num celular.
 
-Qualidade é mais conservadora que no desktop: a captura fica limitada a
-1280×720 e 15fps mesmo que uma resolução maior esteja selecionada, porque
-cada frame é codificado em JPEG por software — sem isso o consumo de
-CPU/bateria explode rápido num celular.
+**A partir do Android 14 o sistema exige uma notificação persistente** enquanto
+a tela está sendo compartilhada. É a mesma notificação que Discord e Zoom
+mostram — política da plataforma, não é opcional.
 
 ---
 
-## Como funciona
+## Como o aplicativo é montado
 
-O app é um WebView que carrega o mesmo cliente React do desktop, servido
-localmente:
+Um WebView carregando o mesmo cliente do site, servido localmente, com o que
+precisa ser nativo escrito em Kotlin ao redor.
 
 ```
 ┌─────────────────────────────────────────┐
@@ -85,19 +99,26 @@ localmente:
          servidor de sinalização
 ```
 
+| Arquivo | O que faz |
+| --- | --- |
+| `MainActivity.kt` | a janela, as permissões e a ponte com o WebView |
+| `ScreenCaptureService.kt` | `MediaProjection` → quadros JPEG |
+| `ScreenStreamServer.kt` | entrega os quadros ao WebView por HTTP local |
+| `AssetHttpServer.kt` | serve o cliente web de `assets/web/` |
+
 ### Por que um servidor HTTP local
 
 Foi a única das três opções que atende os dois requisitos ao mesmo tempo:
 
-| Origem | `getUserMedia` | `ws://` para a LAN |
-|---|---|---|
+| Origem | `getUserMedia` | `ws://` para a rede local |
+| --- | :---: | :---: |
 | `file://` | ❌ não é secure context | ✅ |
 | `https://appassets.androidplatform.net` | ✅ | ❌ mixed content bloqueia |
 | **`http://127.0.0.1`** | ✅ exceção de loopback | ✅ |
 
-O `AssetHttpServer` é um servidor mínimo (~180 linhas, sem dependências) que
-serve os arquivos de `assets/web/`. A porta é fixa de propósito: `localStorage`
-é preso à origem, e a porta faz parte dela — uma porta nova a cada abertura
+O `AssetHttpServer` é um servidor mínimo, sem dependência nenhuma, que serve os
+arquivos de `assets/web/`. **A porta é fixa de propósito:** o `localStorage` é
+preso à origem, e a porta faz parte dela — uma porta nova a cada abertura
 significaria perder as configurações salvas toda vez.
 
 ---
@@ -117,8 +138,8 @@ Para release, assinado e minificado:
 ```
 
 Isso exige uma keystore em `keystore/greenlabs-release.jks` referenciada por
-`keystore/keystore.properties` (nenhum dos dois vai pro git — sem eles o
-`signingConfig` é pulado e o build falha na assinatura). Para gerar a sua:
+`keystore/keystore.properties` — nenhum dos dois vai para o git. Para gerar a
+sua:
 
 ```bash
 keytool -genkeypair -v -keystore keystore/greenlabs-release.jks \
@@ -134,21 +155,18 @@ keyAlias=greenlabs
 keyPassword=SUA_SENHA
 ```
 
-> Guarde essa keystore em lugar seguro. Perdê-la significa não conseguir mais
-> publicar atualizações assinadas com a mesma chave — quem já instalou o app
-> não consegue atualizar por cima, só desinstalar e reinstalar.
+> **Guarde essa keystore em lugar seguro.** Perdê-la significa não conseguir
+> mais publicar atualizações assinadas com a mesma chave — quem já instalou não
+> consegue atualizar por cima, só desinstalar e reinstalar.
 
 ### Atualizando o cliente web
 
-Os arquivos em `app/src/main/assets/web/` são o build do repositório principal.
-Para atualizar:
+Os arquivos em `app/src/main/assets/web/` são o build do repositório principal:
 
 ```bash
 # no repositório greenlabs-desktop
 npm run build
-
-# copie dist/ para cá
-cp -r dist/. ../greenlabsapp/app/src/main/assets/web/
+cp -r dist/. ../greenlabs-android/app/src/main/assets/web/
 ```
 
 ---
@@ -156,44 +174,37 @@ cp -r dist/. ../greenlabsapp/app/src/main/assets/web/
 ## Permissões
 
 | Permissão | Motivo |
-|---|---|
-| `INTERNET` | conectar no servidor de sinalização e nos peers |
+| --- | --- |
+| `INTERNET` | conectar no servidor e nas outras pessoas |
 | `ACCESS_NETWORK_STATE` | detectar rede disponível |
-| `CAMERA` | transmitir vídeo |
-| `RECORD_AUDIO` | transmitir voz |
+| `CAMERA` | aparecer na câmera |
+| `RECORD_AUDIO` | falar |
 | `MODIFY_AUDIO_SETTINGS` | roteamento de áudio em chamada |
-| `FOREGROUND_SERVICE` / `FOREGROUND_SERVICE_MEDIA_PROJECTION` | exigidas pelo Android para captura de tela em segundo plano |
-| `POST_NOTIFICATIONS` | mostrar a notificação obrigatória durante o compartilhamento de tela (Android 13+) |
+| `FOREGROUND_SERVICE` / `..._MEDIA_PROJECTION` | exigidas pelo Android para capturar a tela em segundo plano |
+| `POST_NOTIFICATIONS` | a notificação obrigatória durante o compartilhamento (Android 13+) |
 
-`usesCleartextTraffic="true"` é necessário porque o app usa `http://127.0.0.1`
-internamente e `ws://` para servidores na rede local.
+`usesCleartextTraffic="true"` é necessário porque o aplicativo usa
+`http://127.0.0.1` internamente e `ws://` para servidores na rede local.
 
-Câmera e microfone são pedidos em tempo de execução na primeira abertura. Sem
-eles o app ainda funciona, mas só para assistir.
+Câmera e microfone são pedidos na primeira abertura. Sem eles o aplicativo ainda
+funciona — só para assistir.
 
----
-
-## O que falta
-
-- [x] Testar o APK em aparelho real — testado; áudio, layout e captura de
-      tela renderam problemas reais que foram corrigidos nas versões 1.0.1+
-- [x] Confirmar compartilhar tela num aparelho real
-- [ ] Verificar WebRTC no WebView em versões diferentes do Android
-- [x] Ícone próprio
+**Requisitos:** Android 7.0 (API 24) ou superior, com o WebView atualizado (vem
+pela Play Store na maioria dos aparelhos).
 
 ---
 
-## Requisitos
+## O resto do GreenLabs
 
-- Android 7.0 (API 24) ou superior
-- WebView atualizado (vem pela Play Store na maioria dos aparelhos)
-
----
-
-## Changelog
+| | |
+| --- | --- |
+| [greenlabs-desktop](https://github.com/gustavo-blacknaut/greenlabs-desktop) | Aplicativo para Windows e Linux |
+| [greenlabs-windows](https://github.com/gustavo-blacknaut/greenlabs-windows) | Cliente nativo em C++, mais leve |
+| [greenlabs-server](https://github.com/gustavo-blacknaut/greenlabs-server) | Servidor, um binário só |
+| [greenlabs-site](https://github.com/gustavo-blacknaut/greenlabs-site) | Site e cliente pelo navegador |
 
 O que mudou em cada versão está no [CHANGELOG.md](CHANGELOG.md).
 
-## Créditos
+---
 
-Faz parte do projeto [GreenLabs Live Streaming](https://github.com/gustavo-blacknaut/greenlabs-desktop).
+Um projeto [GreenCodes](https://greencodes.com.br).
