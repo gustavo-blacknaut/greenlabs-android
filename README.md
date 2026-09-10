@@ -43,7 +43,7 @@ A última linha depende do WASAPI, que só existe no Windows. Para isso existe o
 
 ## Mostrar a tela do celular
 
-Nenhum navegador Android implementa `getDisplayMedia` — não é limitação do
+Nenhum navegador Android implementa `getDisplayMedia` - não é limitação do
 WebView, é da plataforma inteira
 ([caniuse](https://caniuse.com/mdn-api_mediadevices_getdisplaymedia)). Então
 esse recurso não vem do WebView: vem de `MediaProjection`, a API nativa que
@@ -57,14 +57,14 @@ ScreenCaptureService (foreground, tipo mediaProjection)
      │  MediaProjection → VirtualDisplay → ImageReader → JPEG
      ▼
 ScreenStreamServer (http://127.0.0.1:<porta>/stream)
-     │  quadros JPEG enquadrados (4 bytes de tamanho + conteúdo) — o mesmo
+     │  quadros JPEG enquadrados (4 bytes de tamanho + conteúdo) - o mesmo
      │  formato que o áudio WASAPI do aplicativo de Windows já usa
      ▼
 WebView: canvas + captureStream() → MediaStream real → addLocalStream()
 ```
 
 O canvas é o que faz a ponte: os quadros chegam por HTTP local, são desenhados
-nele, e `canvas.captureStream()` devolve uma `MediaStream` de verdade — daí em
+nele, e `canvas.captureStream()` devolve uma `MediaStream` de verdade - daí em
 diante é o mesmo caminho de código que uma câmera usa, e o resto do WebRTC não
 precisa saber a diferença.
 
@@ -74,7 +74,7 @@ resolução e taxa altas custam bateria de verdade num celular.
 
 **A partir do Android 14 o sistema exige uma notificação persistente** enquanto
 a tela está sendo compartilhada. É a mesma notificação que Discord e Zoom
-mostram — política da plataforma, não é opcional.
+mostram - política da plataforma, não é opcional.
 
 ---
 
@@ -118,7 +118,7 @@ Foi a única das três opções que atende os dois requisitos ao mesmo tempo:
 
 O `AssetHttpServer` é um servidor mínimo, sem dependência nenhuma, que serve os
 arquivos de `assets/web/`. **A porta é fixa de propósito:** o `localStorage` é
-preso à origem, e a porta faz parte dela — uma porta nova a cada abertura
+preso à origem, e a porta faz parte dela - uma porta nova a cada abertura
 significaria perder as configurações salvas toda vez.
 
 ---
@@ -138,12 +138,12 @@ Para release, assinado e minificado:
 ```
 
 Isso exige uma keystore em `keystore/greenlabs-release.jks` referenciada por
-`keystore/keystore.properties` — nenhum dos dois vai para o git. Para gerar a
+`keystore/keystore.properties` - nenhum dos dois vai para o git. Para gerar a
 sua:
 
 ```bash
 keytool -genkeypair -v -keystore keystore/greenlabs-release.jks \
-  -alias greenlabs -keyalg RSA -keysize 2048 -validity 10950
+ -alias greenlabs -keyalg RSA -keysize 2048 -validity 10950
 ```
 
 E crie `keystore/keystore.properties`:
@@ -156,7 +156,7 @@ keyPassword=SUA_SENHA
 ```
 
 > **Guarde essa keystore em lugar seguro.** Perdê-la significa não conseguir
-> mais publicar atualizações assinadas com a mesma chave — quem já instalou não
+> mais publicar atualizações assinadas com a mesma chave - quem já instalou não
 > consegue atualizar por cima, só desinstalar e reinstalar.
 
 ### Atualizando o cliente web
@@ -187,7 +187,7 @@ cp -r dist/. ../greenlabs-android/app/src/main/assets/web/
 `http://127.0.0.1` internamente e `ws://` para servidores na rede local.
 
 Câmera e microfone são pedidos na primeira abertura. Sem eles o aplicativo ainda
-funciona — só para assistir.
+funciona - só para assistir.
 
 **Requisitos:** Android 7.0 (API 24) ou superior, com o WebView atualizado (vem
 pela Play Store na maioria dos aparelhos).
