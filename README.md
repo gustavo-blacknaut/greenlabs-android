@@ -203,7 +203,8 @@ pela Play Store na maioria dos aparelhos).
 | [greenlabs-server](https://github.com/gustavo-blacknaut/greenlabs-server) | Servidor, um binário só |
 | [greenlabs-site](https://github.com/gustavo-blacknaut/greenlabs-site) | Site e cliente pelo navegador |
 
-O que mudou em cada versão está no [CHANGELOG.md](CHANGELOG.md).
+As alteracoes de cada versao estao nas notas dos
+[releases](https://github.com/gustavo-blacknaut/greenlabs-android/releases).
 
 ---
 

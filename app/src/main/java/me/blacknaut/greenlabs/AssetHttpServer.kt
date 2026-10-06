@@ -10,7 +10,11 @@ import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.util.Locale
-import java.util.concurrent.Executors
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 
 /**
  * Serve o cliente web embutido por http://127.0.0.1.
@@ -22,7 +26,8 @@ import java.util.concurrent.Executors
  */
 internal class AssetHttpServer(private val assets: AssetManager) {
 
-    private val workers = Executors.newFixedThreadPool(4)
+    private val workers = ThreadPoolExecutor(4, 4, 0L, TimeUnit.MILLISECONDS, LinkedBlockingQueue<Runnable>(16))
+    private val connections = ConcurrentHashMap.newKeySet<Socket>()
     private var socket: ServerSocket? = null
     private var acceptThread: Thread? = null
 
@@ -50,6 +55,8 @@ internal class AssetHttpServer(private val assets: AssetManager) {
     fun stop() {
         running = false
         runCatching { socket?.close() }
+        for (client in connections) runCatching { client.close() }
+        connections.clear()
         workers.shutdownNow()
     }
 
@@ -57,7 +64,13 @@ internal class AssetHttpServer(private val assets: AssetManager) {
         while (running) {
             try {
                 val client = socket?.accept() ?: break
-                workers.execute { handle(client) }
+                connections.add(client)
+                try {
+                    workers.execute { handle(client) }
+                } catch (_: RejectedExecutionException) {
+                    connections.remove(client)
+                    runCatching { client.close() }
+                }
             } catch (e: IOException) {
                 if (running) Log.w(TAG, "accept falhou: ${e.message}")
             }
@@ -67,6 +80,8 @@ internal class AssetHttpServer(private val assets: AssetManager) {
     private fun handle(client: Socket) {
         try {
             client.use { conexao ->
+                // Um pedido incompleto não pode ocupar um dos quatro workers indefinidamente.
+                conexao.soTimeout = 5000
                 val entrada = PushbackInputStream(conexao.getInputStream(), 1)
 
                 val pedido = readLine(entrada)
@@ -74,8 +89,11 @@ internal class AssetHttpServer(private val assets: AssetManager) {
 
                 // Os cabecalhos nao interessam, mas precisam ser consumidos
                 // antes de a resposta poder ser escrita.
+                var headerBytes = 0
                 while (true) {
                     val linha = readLine(entrada) ?: break
+                    headerBytes += linha.length
+                    if (headerBytes > 32768) throw IOException("cabecalho muito grande")
                     if (linha.isEmpty()) break
                 }
 
@@ -109,6 +127,8 @@ internal class AssetHttpServer(private val assets: AssetManager) {
             }
         } catch (e: IOException) {
             Log.w(TAG, "falha ao atender: ${e.message}")
+        } finally {
+            connections.remove(client)
         }
     }
 
@@ -160,6 +180,7 @@ internal class AssetHttpServer(private val assets: AssetManager) {
             while (b != -1) {
                 if (b == '\n'.code) break
                 if (b != '\r'.code) buffer.write(b)
+                if (buffer.size() > 8192) throw IOException("cabecalho HTTP muito grande")
                 b = entrada.read()
             }
 

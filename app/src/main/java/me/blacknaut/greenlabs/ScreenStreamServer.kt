@@ -10,6 +10,9 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.CopyOnWriteArraySet
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Semaphore
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Servidor HTTP local que empurra os quadros capturados para a WebView.
@@ -24,6 +27,11 @@ internal class ScreenStreamServer {
 
     private var socket: ServerSocket? = null
     private var acceptThread: Thread? = null
+    private class Viewer(val socket: Socket, val output: OutputStream) {
+        val latestFrame = AtomicReference<ByteArray?>(null)
+        val frameReady = Semaphore(0)
+        var worker: Thread? = null
+    }
 
     @Volatile
     private var running = false
@@ -35,7 +43,8 @@ internal class ScreenStreamServer {
      * proprio laco - com uma lista comum isso seria
      * ConcurrentModificationException.
      */
-    private val clients = CopyOnWriteArraySet<OutputStream>()
+    private val clients = ConcurrentHashMap<Socket, Viewer>()
+    private val connections = CopyOnWriteArraySet<Socket>()
 
     /** Devolve a porta sorteada pelo sistema. */
     fun start(): Int {
@@ -54,9 +63,12 @@ internal class ScreenStreamServer {
 
     fun stop() {
         running = false
-        for (out in clients) {
-            runCatching { out.close() }
+        for (viewer in clients.values) {
+            viewer.latestFrame.set(null)
+            viewer.worker?.interrupt()
         }
+        for (client in connections) runCatching { client.close() }
+        connections.clear()
         clients.clear()
         runCatching { socket?.close() }
     }
@@ -65,7 +77,16 @@ internal class ScreenStreamServer {
         while (running) {
             try {
                 val client = socket?.accept() ?: break
-                Thread({ handle(client) }, "screen-stream-client").start()
+                val accepted = synchronized(connections) {
+                    if (!running || connections.size >= 4) {
+                        false
+                    } else {
+                        connections.add(client)
+                        true
+                    }
+                }
+                if (!accepted) { client.close(); continue }
+                Thread({ handle(client) }, "screen-stream-client").apply { isDaemon = true; start() }
             } catch (e: IOException) {
                 // Fechar o socket para sair do laco tambem lanca aqui; so
                 // interessa o que acontece enquanto ainda deveria estar no ar.
@@ -76,12 +97,17 @@ internal class ScreenStreamServer {
 
     private fun handle(client: Socket) {
         try {
+            client.soTimeout = 5000
+            client.tcpNoDelay = true
             val entrada = PushbackInputStream(client.getInputStream(), 1)
 
             // O pedido em si nao importa - existe uma rota so - mas precisa ser
             // consumido antes de a resposta poder ser escrita.
+            var headerBytes = 0
             while (true) {
                 val linha = readLine(entrada) ?: break
+                headerBytes += linha.length
+                if (headerBytes > 32768) throw IOException("cabecalho muito grande")
                 if (linha.isEmpty()) break
             }
 
@@ -101,8 +127,21 @@ internal class ScreenStreamServer {
                     ).toByteArray(StandardCharsets.US_ASCII),
             )
             saida.flush()
-            clients.add(saida)
+            synchronized(connections) {
+                if (running) {
+                    val viewer = Viewer(client, saida)
+                    clients[client] = viewer
+                    viewer.worker = Thread({ sendLoop(viewer) }, "screen-stream-send").apply {
+                        isDaemon = true
+                        start()
+                    }
+                } else {
+                    connections.remove(client)
+                    client.close()
+                }
+            }
         } catch (_: IOException) {
+            connections.remove(client)
             runCatching { client.close() }
         }
     }
@@ -114,7 +153,34 @@ internal class ScreenStreamServer {
      * imagem velha nao vale a espera que custa.
      */
     fun pushFrame(jpeg: ByteArray?) {
-        if (jpeg == null || jpeg.isEmpty() || clients.isEmpty()) return
+        if (!running || jpeg == null || jpeg.isEmpty() || clients.isEmpty()) return
+        // A captura nunca espera a WebView: só um quadro pendente, sempre o mais recente.
+        for (viewer in clients.values) {
+            if (viewer.latestFrame.getAndSet(jpeg) == null) viewer.frameReady.release()
+        }
+    }
+
+    private fun sendLoop(viewer: Viewer) {
+        try {
+            while (running && !viewer.socket.isClosed) {
+                viewer.frameReady.acquire()
+                if (!running) break
+                val jpeg = viewer.latestFrame.getAndSet(null) ?: continue
+                sendFrame(viewer.output, jpeg)
+            }
+        } catch (_: IOException) {
+            // Cada cliente tem sua propria escrita; um consumidor lento nao segura os outros.
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+        } finally {
+            clients.remove(viewer.socket, viewer)
+            connections.remove(viewer.socket)
+            viewer.latestFrame.set(null)
+            runCatching { viewer.socket.close() }
+        }
+    }
+
+    private fun sendFrame(out: OutputStream, jpeg: ByteArray) {
 
         val tamanho = jpeg.size
         val cabecalho = byteArrayOf(
@@ -124,20 +190,9 @@ internal class ScreenStreamServer {
             tamanho.toByte(),
         )
 
-        for (out in clients) {
-            try {
-                // O synchronized e por cliente: dois quadros ao mesmo tempo no
-                // mesmo socket embaralhariam cabecalho e conteudo.
-                synchronized(out) {
-                    out.write(cabecalho)
-                    out.write(jpeg)
-                    out.flush()
-                }
-            } catch (_: IOException) {
-                clients.remove(out)
-                runCatching { out.close() }
-            }
-        }
+        out.write(cabecalho)
+        out.write(jpeg)
+        out.flush()
     }
 
     private companion object {
@@ -151,6 +206,7 @@ internal class ScreenStreamServer {
             while (b != -1) {
                 if (b == '\n'.code) break
                 if (b != '\r'.code) buffer.write(b)
+                if (buffer.size() > 8192) throw IOException("linha muito grande")
                 b = entrada.read()
             }
 

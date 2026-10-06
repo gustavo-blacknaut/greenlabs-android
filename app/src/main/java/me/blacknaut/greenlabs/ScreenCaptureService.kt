@@ -55,6 +55,7 @@ class ScreenCaptureService : Service() {
 
     @Volatile
     private var lastFrameAt = 0L
+    private var lastErrorAt = 0L
 
     @Volatile
     private var minFrameIntervalMs = 33L
@@ -205,7 +206,7 @@ class ScreenCaptureService : Service() {
             // Limita a taxa aqui, e nao no VirtualDisplay: ele entrega quadro
             // sempre que a tela muda, o que num jogo passa de 100 por segundo.
             // Comprimir todos em JPEG por software gastaria bateria a toa.
-            val agora = System.currentTimeMillis()
+            val agora = android.os.SystemClock.elapsedRealtime()
             if (agora - lastFrameAt < minFrameIntervalMs) return
             lastFrameAt = agora
 
@@ -216,7 +217,11 @@ class ScreenCaptureService : Service() {
 
             streamServer?.pushFrame(jpeg.toByteArray())
         } catch (e: Exception) {
-            Log.w(TAG, "quadro descartado: ${e.message}")
+            val agora = android.os.SystemClock.elapsedRealtime()
+            if (agora - lastErrorAt >= 5000) {
+                lastErrorAt = agora
+                Log.w(TAG, "quadro descartado: ${e.message}")
+            }
         } finally {
             imagem?.close()
         }
